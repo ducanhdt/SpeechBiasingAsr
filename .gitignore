@@ -1,0 +1,9 @@
+*audio
+.cache
+__pycache__
+data*/
+output*
+*.tar
+*.csv
+*.txt
+audio
