@@ -1,0 +1,51 @@
+{
+    "device": "cuda",
+    "os_environment_variable": "max_split_size_mb:512",
+    "train_path": "final_data/librispeech_dev_other_2.csv",
+    "test_path": "final_data/librispeech_dev_other_2.csv",
+    "pretrain_model": "facebook/wav2vec2-base-960h",
+    "use_pretrain_processor": true,
+    "address_database":"data/address_db.pt",
+    "audio_search":{
+        "dim":768,
+        "top_k_search":3,
+        "num_chunk":1
+    },
+    "training_arguments": {
+        "output_dir": "English_Model_output",
+        "evaluation_strategy": "epoch",
+        "save_strategy": "epoch",
+        "learning_rate": 0.0001,
+        "num_train_epochs": 15,
+        "weight_decay": 0.01,
+        "push_to_hub": false,
+        "logging_steps": 100,
+        "report_to": "tensorboard",
+        "per_device_train_batch_size": 1,
+        "gradient_accumulation_steps": 32,
+        "per_gpu_eval_batch_size": 1,
+        "dataloader_num_workers": 8
+    },
+    "tokenizer_parameters": {
+        "vocab_file_path": "model/vocab_vi.json",
+        "unk_token": "[UNK]",
+        "pad_token": "[PAD]",
+        "word_delimiter_token": "|"
+    },
+    "feature_extractor_parameters": {
+        "feature_size": 1,
+        "sampling_rate": 16000,
+        "padding_value": 0.0,
+        "do_normalize": true,
+        "return_attention_mask": true
+    },
+    "data_collator_parameters": {
+        "padding": true,
+        "max_length": null,
+        "max_length_labels": null,
+        "pad_to_multiple_of": null,
+        "pad_to_multiple_of_labels": null,
+        "label_pad_token_id": -100
+    }
+
+}
