@@ -207,31 +207,29 @@ class AddressDatabase:
         return fragments
 
 
+
 if __name__ == "__main__":
-    # address_db = AddressDatabase(dim=768,data_path="address_audio")
-    # address_db.save()
+    import argparse
+    parser = argparse.ArgumentParser(description='Address Database')
+    parser.add_argument('--dim', type=int, default=768, help='Model output size')
+    parser.add_argument('--num_chunk', type=int, default=3, help='Number of split chunks for searching')
+    parser.add_argument('--data_path', type=str, default="audio/address_audio", help='Path to audio data')
+    # parser.add_argument('--db_path', type=str, default="data/address_english_db.pt", help='Path to database')
+    # parser.add_argument('--model_path', type=str, default="facebook/wav2vec2-base-960h", help='Path to model')
+    parser.add_argument('--additional_address', type=str, default="", help='Additional address')
+    parser.add_argument('--save_path', type=str, default="data/address_new_db_chunk3.pt", help='Path to save the database')
 
-    # address_db = AddressDatabase(dim=768,data_path="audio/english_address_audio/audio",model_path="facebook/wav2vec2-base-960h")
+    args = parser.parse_args()
+
     address_db = AddressDatabase(
-        dim=768,
-        db_path="data/address_english_db.pt",
-        model_path="facebook/wav2vec2-base-960h",
+        dim=args.dim,
+        num_chunk=args.num_chunk,
+        data_path=args.data_path,
+        # db_path=args.db_path,
+        # model_path=args.model_path,
     )
-    address_db = AddressDatabase(
-        dim=768,
-        db_path="data/address_english_db.pt",
-        model_path="facebook/wav2vec2-base-960h",
-    )
-    address_db.add("./audio/english_address_audio_test/")
-    # address_db.load()
-    # address_db.mapping['file'] = address_db.mapping['file'].apply(lambda x:f"audio/{x}")
+    if args.additional_address:
+        address_db.add(args.additional_address)
+
     print(address_db.mapping)
-    address_db.save("data/address_english_db_test.pt")
-    # address_db.mapping['file'] = address_db.mapping['file'].apply(lambda file:f"address_audio/{file}" )
-
-    # print("database size: ",address_db.get_size())
-    # # sample_query = address_db.get_embed_from_file("address_audio/Làng_Nhì_MAIPHUONG-HN.wav")
-    # sample_query = address_db.get_embed_from_file('address_audio/La_Gi_MAIPHUONG-HN.wav')
-    # print(sample_query.shape)
-    # res = address_db.search(sample_query,k=5,return_file=True)
-    # print(res)
+    address_db.save(args.save_path)
