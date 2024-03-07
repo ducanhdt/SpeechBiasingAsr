@@ -8,6 +8,7 @@ from transformers import (
 from transformers.models.wav2vec2.modeling_wav2vec2 import (
     Wav2Vec2Attention,
     Wav2Vec2FeedForward,
+    Wav2Vec2Encoder,
 )
 from transformers.modeling_outputs import TokenClassifierOutput, CausalLMOutput
 
@@ -21,7 +22,19 @@ from address_database import AddressDatabase
 
 _HIDDEN_STATES_START_POSITION = 2
 
-
+def merge(fragments):
+    if not fragments:
+        return []
+    merged = [fragments[0]]
+    for i in range(1, len(fragments)):
+        if merged[-1][0] + merged[-1][1] + 3 > fragments[i][0]:
+            merged[-1] = (
+                merged[-1][0],
+                fragments[i][0] + fragments[i][1] - merged[-1][0],
+            )
+        else:
+            merged.append(fragments[i])
+    return merged
 class Wav2Vec2EncoderLayer(nn.Module):
     def __init__(self, config):
         super().__init__()
@@ -84,6 +97,10 @@ class Wav2Vec2AddressHandle(Wav2Vec2PreTrainedModel):
         # post encoder
         post_encode_config = copy.deepcopy(config)
         post_encode_config.hidden_size *= 1 + self.top_k_search
+        # post_encode_config.num_hidden_layers = 1
+        # self.post_encoder = nn.Linear(post_encode_config.hidden_size, post_encode_config.hidden_size)
+        # self.post_encoder2 = nn.Linear(post_encode_config.hidden_size, post_encode_config.hidden_size)
+        # self.post_encoder3 = nn.Linear(post_encode_config.hidden_size, post_encode_config.hidden_size)
         self.post_encoder = Wav2Vec2EncoderLayer(post_encode_config)
 
         if config.vocab_size is None:
@@ -110,7 +127,7 @@ class Wav2Vec2AddressHandle(Wav2Vec2PreTrainedModel):
             output_hidden_size * (1 + self.top_k_search), output_hidden_size
         )
         self.lm_head = nn.Linear(output_hidden_size, config.vocab_size)
-
+        self.post_init()
     def get_address_awe(self, query):
         # query = query.cpu().detach().numpy()
         query = query.cpu().detach().numpy()
@@ -146,6 +163,8 @@ class Wav2Vec2AddressHandle(Wav2Vec2PreTrainedModel):
         # Check if there's a fragment ending at the last position
         if current_start is not None:
             fragments.append((current_start, longest_length))
+        fragments = merge(fragments)
+        fragments = [(a,b) for a,b in fragments if b>5]  
         return fragments
 
     def get_similar_w2v(self, w2v_embedding, token_logit):
@@ -191,7 +210,7 @@ class Wav2Vec2AddressHandle(Wav2Vec2PreTrainedModel):
                     pred[i] = 2
                 elif pred[i] == 2 and pred[i - 1] == 2:
                     pred[i] = 1
-                elif pred[i] == 0 and pred[i - 1] == 2:
+                elif pred[i] == 2 and pred[i - 1] == 1:
                     pred[i] = 1
         return pred
 
@@ -240,8 +259,14 @@ class Wav2Vec2AddressHandle(Wav2Vec2PreTrainedModel):
 
         hidden_states = self.dropout(hidden_states)
 
-        hidden_states_clasify = self.post_encoder_tagger(hidden_states)[0]
-        hidden_states_clasify = self.dropout(hidden_states_clasify)
+        hidden_states_clasify = self.post_encoder_tagger(
+            hidden_states,
+            # attention_mask=attention_mask,
+            # output_attentions=output_attentions,
+            # output_hidden_states=output_hidden_states,
+            # return_dict=return_dict,
+        )[0]
+        # hidden_states_clasify = self.dropout(hidden_states_clasify)
 
         token_logits = self.classifier(hidden_states_clasify)
         token_label = torch.argmax(token_logits, dim=2)
@@ -279,8 +304,13 @@ class Wav2Vec2AddressHandle(Wav2Vec2PreTrainedModel):
         stacked_tensor = torch.cat((hidden_states, similar_embeding), dim=2)
         # stacked_tensor = torch.cat((hidden_states,)+(i for i in similar_embeding), dim=2)
         post_hidden_states = self.post_encoder(stacked_tensor)[0]
+        # post_hidden_states = stacked_tensor
+        # post_hidden_states = self.relu(self.post_encoder(post_hidden_states))
+        # post_hidden_states = self.relu(self.post_encoder2(post_hidden_states))
+        # post_hidden_states = self.relu(self.post_encoder3(post_hidden_states))
 
         hidden_states = (
+            # self.relu(self.norm_shape(post_hidden_states)) + hidden_states
             self.dropout(self.relu(self.norm_shape(post_hidden_states))) + hidden_states
         )
 
@@ -330,9 +360,10 @@ class Wav2Vec2AddressHandle(Wav2Vec2PreTrainedModel):
         elif not loss_fct:
             loss = loss_ctc
         else:
-            loss = loss_ctc
-            # loss = 0.1 * loss_ctc + 0.9 * loss_fct
-        # print(loss_fct,loss_ctc)
+            # loss = loss_ctc
+            # loss = 0.8 * loss_ctc + 0.2 * loss_fct
+            loss = 0.2 * loss_ctc + 0.8 * loss_fct
+        # print("loss_fct",loss_fct,"loss_ctc",loss_ctc)
         return CausalLMOutput(
             loss=loss,
             logits=logits,

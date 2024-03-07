@@ -28,7 +28,7 @@ class AddressDatabase:
     ) -> None:
         self.dim = dim
         self.num_chunk = num_chunk
-        tokenizer = Wav2Vec2CTCTokenizer(f"model/vocab_vi.json")
+        tokenizer = Wav2Vec2CTCTokenizer(f"LibriSpeech/vocab.json")
         if not model:
             feature_extractor = Wav2Vec2FeatureExtractor(
                 feature_size=1,
@@ -215,7 +215,7 @@ if __name__ == "__main__":
     parser.add_argument('--num_chunk', type=int, default=3, help='Number of split chunks for searching')
     parser.add_argument('--data_path', type=str, default="audio/address_audio", help='Path to audio data')
     # parser.add_argument('--db_path', type=str, default="data/address_english_db.pt", help='Path to database')
-    # parser.add_argument('--model_path', type=str, default="facebook/wav2vec2-base-960h", help='Path to model')
+    parser.add_argument('--model_path', type=str, default="facebook/wav2vec2-base-960h", help='Path to model')
     parser.add_argument('--additional_address', type=str, default="", help='Additional address')
     parser.add_argument('--save_path', type=str, default="data/address_new_db_chunk3.pt", help='Path to save the database')
 
@@ -226,7 +226,7 @@ if __name__ == "__main__":
         num_chunk=args.num_chunk,
         data_path=args.data_path,
         # db_path=args.db_path,
-        # model_path=args.model_path,
+        model_path=args.model_path,
     )
     if args.additional_address:
         address_db.add(args.additional_address)

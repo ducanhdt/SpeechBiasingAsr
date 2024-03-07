@@ -1,5 +1,5 @@
 *audio
-.cache
+*cache
 __pycache__
 data*/
 output*
@@ -7,3 +7,11 @@ output*
 *.csv
 *.txt
 audio
+model/
+*check*
+english_asr
+AWE*
+English*
+ASR*
+LibriSpeech*
+TTS
